@@ -8,6 +8,11 @@
 
 #include <boost/optional.hpp>
 #include <boost/thread.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <tins/icmp.h>
+#include <tins/ip.h>
+#include <tins/ethernetII.h>
 
 #include <unordered_map>
 
@@ -20,12 +25,14 @@
 
 #include "OFMsgSender.hpp"
 #include <string>
-
+#include <iostream>
+#include <algorithm>
 
 namespace runos {
 
 using SwitchPtr = safe::shared_ptr<Switch>;
 namespace of13 = fluid_msg::of13;
+namespace pt = boost::property_tree;
 
 namespace ofb_l2 
 {
@@ -40,7 +47,12 @@ class ACL : public Application
 
 public:
     void init(Loader* loader, const Config& config) override;
-
+    struct t_politics
+    {
+        std::string ip_src;
+        std::vector<std::string> v_destIp;
+        std::vector<std::string> v_ports;
+    } ;
 protected slots:
     void onSwitchUp(SwitchPtr sw);
 
@@ -53,16 +65,16 @@ private:
     ethaddr dst_mac_;
     uint64_t dpid_;
     uint32_t in_port_;
-
-    std::map<std::string, std::set<std::string>> politics;
-    void make_politics();
     
     void send_unicast(uint32_t target_switch_and_port,
                       const of13::PacketIn& pi,
                       std::string str_src_ip,
                       std::string str_dst_ip);
     void send_broadcast(const of13::PacketIn& pi);
-
+    void del(void);
+    bool readConfig(bool printConfig);
+    void sortPolitics();
+    void addRule(std::string ipSrc, std::string ipDst, uint32_t port, std::string MAC, uint32_t priority, uint32_t action);
 };
 
 class HostDatabase
